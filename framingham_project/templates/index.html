@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Framingham Risk Predictor</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6B4C9A;
+            --primary-light: #9b7fc4;
+            --primary-glow: rgba(107, 76, 154, 0.15);
+            --bg: #12121f;
+            --bg-content: #16162a;
+            --card: #1e1e35;
+            --card-hover: #252545;
+            --border: #3a3a5a;
+            --text: #e8e8f0;
+            --muted: #9090a8;
+            --accent: #e91e8c;
+            --accent-light: rgba(233, 30, 140, 0.15);
+            --accent-glow: rgba(233, 30, 140, 0.2);
+            --danger: #e74c3c;
+            --danger-light: rgba(231, 76, 60, 0.15);
+            --success: #2ecc71;
+            --success-light: rgba(46, 204, 113, 0.15);
+            --warning: #f39c12;
+            --sidebar-width: 260px;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+        }
+        .hamburger {
+            display: none;
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1001;
+            width: 44px;
+            height: 44px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            cursor: pointer;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.3s;
+        }
+        .hamburger:hover { background: var(--card-hover); }
+        .hamburger span {
+            width: 22px;
+            height: 2px;
+            background: var(--text);
+            border-radius: 2px;
+            transition: all 0.3s;
+        }
+        .hamburger.active span:nth-child(1) { transform: rotate(45deg) translate(5px, 5px); }
+        .hamburger.active span:nth-child(2) { opacity: 0; }
+        .hamburger.active span:nth-child(3) { transform: rotate(-45deg) translate(5px, -5px); }
+        
+        .sidebar {
+            width: var(--sidebar-width);
+            min-height: 100vh;
+            background: var(--bg-content);
+            border-right: 1px solid var(--border);
+            padding: 30px 0;
+            position: fixed;
+            left: 0;
+            top: 0;
+            display: flex;
+            flex-direction: column;
+            z-index: 1000;
+            transition: transform 0.3s ease;
+        }
+        .sidebar-brand {
+            padding: 0 28px 30px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 20px;
+        }
+        .sidebar-badge {
+            display: inline-block;
+            background: var(--primary-glow);
+            color: var(--primary-light);
+            font-size: 0.6rem;
+            font-weight: 600;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            padding: 4px 10px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+        }
+        .sidebar-title {
+            font-family: 'DM Serif Display', serif;
+            font-size: 1.4rem;
+            font-weight: 400;
+            color: var(--text);
+            line-height: 1.2;
+        }
+        .sidebar-title span { color: var(--accent); }
+        
+        .nav-menu { list-style: none; padding: 0 16px; }
+        .nav-item {
+            margin-bottom: 6px;
+        }
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 18px;
+            border-radius: 10px;
+            color: var(--muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .nav-link:hover {
+            background: var(--primary-glow);
+            color: var(--text);
+        }
+        .nav-link.active {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: white;
+            box-shadow: 0 4px 20px var(--accent-glow);
+        }
+        .nav-link .icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+        }
+        
+        .main-content {
+            flex: 1;
+            margin-left: var(--sidebar-width);
+            padding: 40px;
+            min-height: 100vh;
+        }
+        .container { max-width: 860px; margin: 0 auto; }
+
+        .header { text-align: center; margin-bottom: 40px; }
+        .header-badge {
+            display: inline-block;
+            background: var(--primary-glow);
+            color: var(--primary-light);
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            padding: 5px 14px;
+            border-radius: 20px;
+            border: 1px solid rgba(107, 76, 154, 0.3);
+            margin-bottom: 14px;
+        }
+        h1 {
+            font-family: 'DM Serif Display', serif;
+            font-size: 2.6rem;
+            font-weight: 400;
+            color: var(--text);
+            line-height: 1.15;
+            margin-bottom: 10px;
+        }
+        h1 span { color: var(--accent); }
+        .subtitle { color: var(--muted); font-size: 0.9rem; font-weight: 300; }
+
+        .card {
+            display: none;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+        }
+        .card.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: translateY(0); } }
+
+        .card-title {
+            font-family: 'DM Serif Display', serif;
+            font-size: 1.3rem;
+            font-weight: 400;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .card-title::before { content: '◆'; color: var(--accent); font-size: 0.6rem; }
+        .card-desc { color: var(--muted); font-size: 0.8rem; margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
+
+        .section-label {
+            font-size: 0.65rem;
+            font-weight: 600;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin: 20px 0 10px;
+            padding-left: 2px;
+        }
+
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; }
+        .form-row.three { grid-template-columns: 1fr 1fr 1fr; }
+        .form-group { margin-bottom: 0; }
+        .form-group.full { grid-column: 1 / -1; }
+
+        label {
+            display: block;
+            font-size: 0.7rem;
+            color: var(--muted);
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px 12px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 0.85rem;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-glow);
+            background: var(--card-hover);
+        }
+        select {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' viewBox='0 0 12 12'%3E%3Cpath fill='%239090a8' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-color: var(--bg);
+            padding-right: 32px;
+        }
+
+        .btn-row { display: flex; gap: 10px; margin-top: 24px; }
+        .btn-primary {
+            flex: 1;
+            padding: 13px 24px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 24px var(--accent-glow); }
+        .btn-clear {
+            padding: 13px 20px;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--muted);
+            font-size: 0.85rem;
+            cursor: pointer;
+            text-decoration: none;
+            text-align: center;
+            transition: all 0.2s;
+            font-family: inherit;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+        .btn-clear:hover { border-color: var(--danger); color: var(--danger); }
+
+        .result-box {
+            margin-top: 24px;
+            padding: 24px;
+            border-radius: 12px;
+            text-align: center;
+            border: 2px solid var(--border);
+        }
+        .result-box.positive { background: var(--danger-light); border-color: var(--danger); }
+        .result-box.negative { background: var(--success-light); border-color: var(--success); }
+        .result-label { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 8px; font-weight: 600; }
+        .result-value { font-family: 'DM Serif Display', serif; font-size: 1.6rem; }
+        .result-value.positive { color: var(--danger); }
+        .result-value.negative { color: var(--success); }
+        .result-prob { font-size: 0.85rem; color: var(--muted); margin-top: 8px; }
+        .result-model { font-size: 0.72rem; color: var(--muted); margin-top: 4px; opacity: 0.7; }
+
+        .alert { margin-top: 20px; padding: 12px 16px; border-radius: 10px; font-size: 0.82rem; }
+        .alert-danger { background: var(--danger-light); border: 1px solid rgba(192,57,43,0.2); color: var(--danger); }
+        .alert-info { background: var(--accent-light); border: 1px solid rgba(45,106,45,0.2); color: var(--accent); }
+
+        .hint-box {
+            background: #fffbf0;
+            border: 1px solid #f0d080;
+            border-radius: 10px;
+            padding: 14px 16px;
+            font-size: 0.75rem;
+            color: var(--warning);
+            margin-bottom: 20px;
+        }
+        .hint-box strong { display: block; margin-bottom: 4px; font-size: 0.78rem; }
+
+        .result-section { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border); }
+        .result-section h5 { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600; margin-bottom: 12px; }
+
+        .matriz-table { border-collapse: collapse; margin: 0 auto; text-align: center; margin-top: 10px; }
+        .matriz-table td { padding: 6px 14px; }
+        .matriz-cell {
+            padding: 16px 28px !important;
+            font-size: 1.4rem;
+            font-weight: 700;
+            border-radius: 8px;
+            font-family: 'DM Serif Display', serif;
+        }
+        .cell-tp { background: var(--success-light); color: var(--success); }
+        .cell-fp { background: var(--danger-light); color: var(--danger); }
+        .cell-fn { background: var(--danger-light); color: var(--danger); }
+        .cell-tn { background: var(--success-light); color: var(--success); }
+        .cell-label { color: var(--muted); font-size: 0.7rem; }
+
+        .report-table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 0.8rem; }
+        .report-table th { padding: 10px 14px; text-align: left; color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--border); text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.68rem; }
+        .report-table th:not(:first-child) { text-align: center; }
+        .report-table td { padding: 10px 14px; border-bottom: 1px solid #f0f4f0; }
+        .report-table td:not(:first-child) { text-align: center; }
+        .report-table tr:last-child td { border-bottom: none; }
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.78rem;
+        }
+        .badge-green { background: var(--success-light); color: var(--success); }
+        .badge-yellow { background: #fef9e7; color: var(--warning); }
+        .badge-red { background: var(--danger-light); color: var(--danger); }
+        .row-accent { background: var(--accent-light); }
+        .row-accent td { color: var(--accent); font-weight: 600; }
+        .row-muted td { color: var(--muted); font-style: italic; font-size: 0.78rem; }
+
+        @media (max-width: 768px) {
+            .hamburger { display: flex; }
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .sidebar.open { transform: translateX(0); }
+            .main-content { margin-left: 0; padding: 70px 20px 40px; }
+            .container { max-width: 100%; }
+        }
+        @media (max-width: 600px) {
+            h1 { font-size: 1.8rem; }
+            .form-row, .form-row.three { grid-template-columns: 1fr; }
+        }
+    </style>
+<script>
+    function toggleSidebar() {
+        document.querySelector('.sidebar').classList.toggle('open');
+        document.querySelector('.hamburger').classList.toggle('active');
+    }
+    function setActiveTab(tab) {
+        window.location.href = '/?tab=' + tab;
+    }
+</script>
+</head>
+<body>
+    <button class="hamburger" onclick="toggleSidebar()">
+        <span></span>
+        <span></span>
+        <span></span>
+    </button>
+
+    <nav class="sidebar">
+        <div class="sidebar-brand">
+            <div class="sidebar-badge">Framingham</div>
+            <h2 class="sidebar-title">Riesgo <span>Coronario</span></h2>
+        </div>
+        <ul class="nav-menu">
+            <li class="nav-item">
+                <a href="#" class="nav-link {% if tab != 'lotes' %}active{% endif %}" onclick="setActiveTab('individual'); return false;">
+                    <span class="icon">◈</span>
+                    Predicción Individual
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link {% if tab == 'lotes' %}active{% endif %}" onclick="setActiveTab('lotes'); return false;">
+                    <span class="icon">◉</span>
+                    Predicción por Lotes
+                </a>
+            </li>
+        </ul>
+    </nav>
+
+    <main class="main-content">
+    <div class="container">
+    <div class="header">
+        <div class="header-badge">Framingham Heart Study</div>
+        <h1>Riesgo <span>Coronario</span><br>a 10 Años</h1>
+        <p class="subtitle">Predicción de enfermedad coronaria a 10 años</p>
+    </div>
+
+    <!-- INDIVIDUAL -->
+    <div class="card {% if tab != 'lotes' %}active{% endif %}">
+        <div class="card-title">Predicción Individual</div>
+        <p class="card-desc">Ingresa los datos clínicos del paciente para estimar el riesgo de enfermedad coronaria en los próximos 10 años.</p>
+
+        <form action="/predict" method="post">
+            <div class="form-group">
+                <label>Modelo</label>
+                <select name="modelo">
+                    <option value="logreg" {% if modelo=='logreg' %}selected{% endif %}>Regresión Logística</option>
+                    <option value="mlp" {% if modelo=='mlp' %}selected{% endif %}>Red Neuronal (MLP)</option>
+                </select>
+            </div>
+
+            <div class="section-label">Datos Demográficos</div>
+            <div class="form-row three">
+                <div class="form-group">
+                    <label>Sexo</label>
+                    <select name="male">
+                        <option value="">Seleccionar...</option>
+                        <option value="1" {% if male=='1' %}selected{% endif %}>1 - Masculino</option>
+                        <option value="0" {% if male=='0' %}selected{% endif %}>0 - Femenino</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Edad</label>
+                    <input type="number" name="age" placeholder="ej: 52" value="{{ age|default('') }}" required>
+                </div>
+                <div class="form-group">
+                    <label>Educación</label>
+                    <select name="education">
+                        <option value="">Seleccionar...</option>
+                        <option value="1" {% if education=='1' %}selected{% endif %}>1 - Primaria</option>
+                        <option value="2" {% if education=='2' %}selected{% endif %}>2 - Secundaria</option>
+                        <option value="3" {% if education=='3' %}selected{% endif %}>3 - Universidad</option>
+                        <option value="4" {% if education=='4' %}selected{% endif %}>4 - Posgrado</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="section-label">Hábitos</div>
+            <div class="form-row three">
+                <div class="form-group">
+                    <label>Fumador actual</label>
+                    <select name="currentSmoker">
+                        <option value="">Seleccionar...</option>
+                        <option value="0" {% if currentSmoker=='0' %}selected{% endif %}>0 - No</option>
+                        <option value="1" {% if currentSmoker=='1' %}selected{% endif %}>1 - Sí</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Cigarrillos por día</label>
+                    <input type="number" name="cigsPerDay" placeholder="ej: 10" value="{{ cigsPerDay|default('') }}">
+                </div>
+                <div class="form-group">
+                    <label>Medicación para presión</label>
+                    <select name="BPMeds">
+                        <option value="">Seleccionar...</option>
+                        <option value="0" {% if BPMeds=='0' %}selected{% endif %}>0 - No</option>
+                        <option value="1" {% if BPMeds=='1' %}selected{% endif %}>1 - Sí</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="section-label">Historial Médico</div>
+            <div class="form-row three">
+                <div class="form-group">
+                    <label>ACV previo</label>
+                    <select name="prevalentStroke">
+                        <option value="">Seleccionar...</option>
+                        <option value="0" {% if prevalentStroke=='0' %}selected{% endif %}>0 - No</option>
+                        <option value="1" {% if prevalentStroke=='1' %}selected{% endif %}>1 - Sí</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Hipertensión</label>
+                    <select name="prevalentHyp">
+                        <option value="">Seleccionar...</option>
+                        <option value="0" {% if prevalentHyp=='0' %}selected{% endif %}>0 - No</option>
+                        <option value="1" {% if prevalentHyp=='1' %}selected{% endif %}>1 - Sí</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Diabetes</label>
+                    <select name="diabetes">
+                        <option value="">Seleccionar...</option>
+                        <option value="0" {% if diabetes=='0' %}selected{% endif %}>0 - No</option>
+                        <option value="1" {% if diabetes=='1' %}selected{% endif %}>1 - Sí</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="section-label">Medidas Clínicas</div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Colesterol total (mg/dL)</label>
+                    <input type="number" name="totChol" placeholder="ej: 230" value="{{ totChol|default('') }}" required>
+                </div>
+                <div class="form-group">
+                    <label>Presión sistólica (mmHg)</label>
+                    <input type="number" name="sysBP" placeholder="ej: 130" value="{{ sysBP|default('') }}" step="0.1" required>
+                </div>
+                <div class="form-group">
+                    <label>Presión diastólica (mmHg)</label>
+                    <input type="number" name="diaBP" placeholder="ej: 85" value="{{ diaBP|default('') }}" step="0.1" required>
+                </div>
+                <div class="form-group">
+                    <label>IMC (kg/m²)</label>
+                    <input type="number" name="BMI" placeholder="ej: 26.5" value="{{ BMI|default('') }}" step="0.1" required>
+                </div>
+                <div class="form-group">
+                    <label>Frecuencia cardíaca</label>
+                    <input type="number" name="heartRate" placeholder="ej: 75" value="{{ heartRate|default('') }}" required>
+                </div>
+                <div class="form-group">
+                    <label>Glucosa (mg/dL)</label>
+                    <input type="number" name="glucose" placeholder="ej: 90" value="{{ glucose|default('') }}" required>
+                </div>
+            </div>
+
+            <div class="btn-row">
+                <button type="submit" class="btn-primary">Predecir Riesgo</button>
+                <a href="/?tab=individual" class="btn-clear">Limpiar</a>
+            </div>
+        </form>
+
+        {% if pred_individual == 0 or pred_individual == 1 %}
+        <div class="result-box {% if pred_individual == 1 %}positive{% else %}negative{% endif %}">
+            <div class="result-label">Resultado</div>
+            {% if pred_individual == 1 %}
+            <div class="result-value positive">Alto Riesgo Coronario</div>
+            {% else %}
+            <div class="result-value negative">Bajo Riesgo Coronario</div>
+            {% endif %}
+            {% if prob_individual %}
+            <div class="result-prob">Probabilidad de riesgo: <strong>{{ prob_individual }}%</strong></div>
+            {% endif %}
+            {% if modelo %}
+            <div class="result-model">Modelo: {% if modelo == 'logreg' %}Regresión Logística{% else %}Red Neuronal (MLP){% endif %}</div>
+            {% endif %}
+        </div>
+        {% endif %}
+        {% if error %}<div class="alert alert-danger">{{ error }}</div>{% endif %}
+    </div>
+
+    <!-- LOTES -->
+    <div class="card {% if tab == 'lotes' %}active{% endif %}">
+        <div class="card-title">Predicción por Lotes</div>
+        <p class="card-desc">Sube un archivo CSV con múltiples pacientes para obtener predicciones masivas.</p>
+
+        <div class="hint-box">
+            <strong>⚠️ Formato requerido del CSV</strong>
+            Columnas: <strong>male, age, education, currentSmoker, cigsPerDay, BPMeds, prevalentStroke, prevalentHyp, diabetes, totChol, sysBP, diaBP, BMI, heartRate, glucose</strong><br>
+            <span style="opacity:0.8; font-size:0.7rem;">Opcional: agrega columna <strong>TenYearCHD</strong> con valores 0 o 1 para calcular métricas.</span>
+        </div>
+
+        <form action="/batch" method="post" enctype="multipart/form-data">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Modelo</label>
+                    <select name="modelo_batch">
+                        <option value="logreg">Regresión Logística</option>
+                        <option value="mlp">Red Neuronal (MLP)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Archivo CSV</label>
+                    <input type="file" name="file" accept=".csv" required>
+                </div>
+            </div>
+            <div class="btn-row">
+                <button type="submit" class="btn-primary">Evaluar</button>
+                <a href="/?tab=lotes" class="btn-clear">Limpiar</a>
+            </div>
+        </form>
+
+        {% if info_msg %}<div class="alert alert-info" style="margin-top:20px;">{{ info_msg|safe }}</div>{% endif %}
+
+        {% if matriz %}
+        <div class="result-section">
+            <h5>Matriz de Confusión</h5>
+            <table class="matriz-table">
+                <tr>
+                    <td class="cell-label"></td>
+                    <td class="cell-label">Pred: Sin riesgo</td>
+                    <td class="cell-label">Pred: Con riesgo</td>
+                </tr>
+                <tr>
+                    <td class="cell-label">Real: Sin riesgo</td>
+                    <td class="matriz-cell cell-tn">{{ matriz[0][0] }}</td>
+                    <td class="matriz-cell cell-fp">{{ matriz[0][1] }}</td>
+                </tr>
+                <tr>
+                    <td class="cell-label">Real: Con riesgo</td>
+                    <td class="matriz-cell cell-fn">{{ matriz[1][0] }}</td>
+                    <td class="matriz-cell cell-tp">{{ matriz[1][1] }}</td>
+                </tr>
+            </table>
+        </div>
+        {% endif %}
+
+        {% if reporte %}
+        <div class="result-section">
+            <h5>Reporte de Clasificación</h5>
+            <table class="report-table">
+                <thead>
+                    <tr>
+                        <th>Clase</th>
+                        <th>Precisión</th>
+                        <th>Recall</th>
+                        <th>F1-Score</th>
+                        <th>Soporte</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% set rows = reporte.strip().split('\n') %}
+                {% for row in rows %}
+                    {% set cols = row.split() %}
+                    {% if cols|length == 5 and cols[0] not in ['accuracy','macro','weighted'] %}
+                        {% set label = 'Sin riesgo (0)' if cols[0] == '0' else ('Con riesgo (1)' if cols[0] == '1' else cols[0]) %}
+                        <tr>
+                            <td style="font-weight:500;">{{ label }}</td>
+                            <td style="color:var(--primary-light);">{{ (cols[1]|float * 100)|round(1) }}%</td>
+                            <td style="color:var(--primary-light);">{{ (cols[2]|float * 100)|round(1) }}%</td>
+                            <td>
+                                {% set f1 = cols[3]|float %}
+                                <span class="badge {% if f1 >= 0.8 %}badge-green{% elif f1 >= 0.5 %}badge-yellow{% else %}badge-red{% endif %}">
+                                    {{ (f1 * 100)|round(1) }}%
+                                </span>
+                            </td>
+                            <td style="color:var(--muted);">{{ cols[4] }}</td>
+                        </tr>
+                    {% elif cols|length == 4 and cols[0] == 'accuracy' %}
+                        <tr class="row-accent">
+                            <td>Accuracy global</td>
+                            <td colspan="3" style="text-align:center;font-size:1rem;">{{ (cols[1]|float * 100)|round(1) }}%</td>
+                            <td>{{ cols[2] }}</td>
+                        </tr>
+                    {% elif cols|length >= 5 and cols[0] in ['macro','weighted'] %}
+                        <tr class="row-muted">
+                            <td>{{ cols[0]|capitalize }} avg</td>
+                            <td>{{ (cols[2]|float * 100)|round(1) }}%</td>
+                            <td>{{ (cols[3]|float * 100)|round(1) }}%</td>
+                            <td>{{ (cols[4]|float * 100)|round(1) }}%</td>
+                            <td>{{ cols[5] if cols|length > 5 else '' }}</td>
+                        </tr>
+                    {% endif %}
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+        {% if error %}<div class="alert alert-danger">{{ error|safe }}</div>{% endif %}
+    </div>
+</div>
+</main>
+</body>
+</html>
